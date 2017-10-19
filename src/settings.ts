@@ -286,7 +286,12 @@ export default class Settings {
                 if (brackets.length < 2) {
                     throw new Error("consecutivePairColors[" + index + "] needs at least 2 characters");
                 }
-                this.bracketPairs.push(new BracketPair(brackets[0], brackets[1], colors, orphanColor));
+                if (brackets.includes("&")) {
+                  const customBrackets = brackets.split("&", 2);
+                  this.bracketPairs.push(new BracketPair(customBrackets[0], customBrackets[1], colors, orphanColor));
+                } else {
+                  this.bracketPairs.push(new BracketPair(brackets[0], brackets[1], colors, orphanColor));
+                }
             });
         }
         else {
@@ -322,7 +327,13 @@ export default class Settings {
                     throw new Error("independentSettings[" + index + "][2] is not a string");
                 }
 
-                this.bracketPairs.push(new BracketPair(brackets[0], brackets[1], colors, orphanColor));
+                if (brackets.includes("&")) {
+                    const customBrackets = brackets.split("&", 2);
+                    this.bracketPairs.push(new BracketPair(customBrackets[0], customBrackets[1], colors, orphanColor));
+                }
+                else {
+                    this.bracketPairs.push(new BracketPair(brackets[0], brackets[1], colors, orphanColor));
+                }
             });
         }
 
@@ -347,15 +358,17 @@ export default class Settings {
     // Create a regex to match open and close brackets
     // TODO Test what happens if user specifies other characters then []{}()
     private createRegex(bracketPairs: BracketPair[]): string {
-        let regex = "[";
-
+        const regex = [];
         for (const bracketPair of bracketPairs) {
-            regex += `\\${bracketPair.openCharacter}\\${bracketPair.closeCharacter}`;
+            if (bracketPair.openCharacter.match(/[a-zA-Z0-9]+/)) {
+                regex.push(`\\b(${bracketPair.openCharacter}|${bracketPair.closeCharacter})\\b`);
+            }
+            else {
+                regex.push(`\\${bracketPair.openCharacter}|\\${bracketPair.closeCharacter}`);
+            }
         }
 
-        regex += "]";
-
-        return regex;
+        return regex.join("|");
     }
 
     private createBracketDecorations(bracketPairs: BracketPair[]): Map<string, vscode.TextEditorDecorationType> {
